@@ -1,0 +1,106 @@
+name: CI/CD Deploy
+
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      image_name: ${{ steps.lowercase.outputs.image_name }}
+    steps:
+      - name: Lowercase image name
+        id: lowercase
+        run: |
+          echo "image_name=${IMAGE_NAME,,}" >> $GITHUB_OUTPUT
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run tests
+        run: |
+          export PYTHONPATH=$PYTHONPATH:.
+          python -m pytest
+
+  build-and-push:
+    needs: [test, prepare]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ needs.prepare.outputs.image_name }}
+          tags: |
+            type=sha,format=long
+            type=ref,event=branch
+            latest
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  deploy:
+    needs: [build-and-push, prepare]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy docker-compose via scp
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          source: "docker-compose.yml"
+          target: "~/fit_tracker"
+
+      - name: Execute remote deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            mkdir -p ~/fit_tracker
+            cd ~/fit_tracker
+            # Создаем .env с актуальным тегом образа
+            echo "DOCKER_IMAGE=${{ env.REGISTRY }}/${{ needs.prepare.outputs.image_name }}:sha-${{ github.sha }}" > .env
+            # Логинимся в GHCR на сервере (используем GITHUB_TOKEN текущего запуска)
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+            # Пул и перезапуск
+            docker compose pull
+            docker compose up -d
+            # Очистка старых образов и выход из реестра
+            docker image prune -f
+            docker logout ${{ env.REGISTRY }}

@@ -1,0 +1,16 @@
+services:
+  app:
+    image: ${DOCKER_IMAGE:-fit_tracker_backend:latest}
+    container_name: fit_tracker_app
+    ports:
+      - "8000:8000"
+    volumes:
+      - fit_tracker_db:/app/db_data
+      - fit_tracker_uploads:/app/static/uploads
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:////app/db_data/fit_tracker.db
+    restart: always
+
+volumes:
+  fit_tracker_db:
+  fit_tracker_uploads:
