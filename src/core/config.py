@@ -4,7 +4,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite+aiosqlite:///./fit_tracker.db"
     PROJECT_NAME: str = "Fit-Tracker"
 
-    ALLOWED_ORIGINS: list[str] = ["http://localhost:5173"]
+    ALLOWED_ORIGINS: list[str] = ["http://localhost:5173", "https://baltsezhakdm.github.io/fit_tracker", "https://trackerfit.mooo.com"]
     TELEGRAM_BOT_TOKEN: str = "your_bot_token"
     JWT_SECRET: str = "your_jwt_secret"
     ALGORITHM: str = "HS256"
