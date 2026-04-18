@@ -9,6 +9,8 @@ services:
       - fit_tracker_uploads:/app/static/uploads
     env_file:
       - .env
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:////app/db_data/fit_tracker.db
     restart: always
 
 volumes:
