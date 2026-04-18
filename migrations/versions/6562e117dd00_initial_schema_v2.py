@@ -1,8 +1,8 @@
-"""Initial migration
+"""initial_schema_v2
 
-Revision ID: 3b91763e08b0
+Revision ID: 6562e117dd00
 Revises:
-Create Date: 2026-04-18 11:52:28.102439
+Create Date: 2026-04-18 12:58:32.391928
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '3b91763e08b0'
+revision: str = '6562e117dd00'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -29,6 +29,7 @@ def upgrade() -> None:
     sa.Column('description', sa.String(), nullable=True),
     sa.Column('media_url', sa.String(), nullable=True),
     sa.Column('comment', sa.String(), nullable=True),
+    sa.Column('biomechanics_tags', sa.JSON(), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('users',
@@ -46,6 +47,13 @@ def upgrade() -> None:
     sa.Column('description', sa.String(), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('user_blacklisted_exercises',
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('exercise_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['exercise_id'], ['exercises.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('user_id', 'exercise_id')
     )
     op.create_table('training_plans',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -65,7 +73,7 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('plan_id', 'exercise_id')
     )
     op.create_table('workout_sessions',
-    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('plan_id', sa.Integer(), nullable=True),
     sa.Column('start_time', sa.DateTime(), nullable=False),
@@ -76,21 +84,25 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('workout_exercises',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('session_id', sa.Integer(), nullable=False),
+    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('session_id', sa.UUID(), nullable=False),
     sa.Column('exercise_id', sa.Integer(), nullable=False),
     sa.Column('order', sa.Integer(), nullable=False),
+    sa.Column('technique_details', sa.JSON(), nullable=False),
     sa.ForeignKeyConstraint(['exercise_id'], ['exercises.id'], ),
     sa.ForeignKeyConstraint(['session_id'], ['workout_sessions.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('workout_sets',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('workout_exercise_id', sa.Integer(), nullable=False),
+    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('workout_exercise_id', sa.UUID(), nullable=False),
     sa.Column('reps', sa.Integer(), nullable=False),
     sa.Column('weight', sa.Float(), nullable=False),
     sa.Column('time_spent_seconds', sa.Integer(), nullable=True),
     sa.Column('rest_time_seconds', sa.Integer(), nullable=True),
+    sa.Column('is_warmup', sa.Boolean(), nullable=False),
+    sa.Column('rpe', sa.Integer(), nullable=True),
+    sa.Column('rir', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['workout_exercise_id'], ['workout_exercises.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -105,6 +117,7 @@ def downgrade() -> None:
     op.drop_table('workout_sessions')
     op.drop_table('plan_exercises')
     op.drop_table('training_plans')
+    op.drop_table('user_blacklisted_exercises')
     op.drop_table('training_programs')
     op.drop_index(op.f('ix_users_telegram_id'), table_name='users')
     op.drop_table('users')

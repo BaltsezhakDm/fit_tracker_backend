@@ -1,4 +1,4 @@
-from typing import List, Optional, TypeVar, Generic, Type
+from typing import List, Optional, TypeVar, Generic, Type, Any
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.domain.repositories import BaseRepository
@@ -11,7 +11,7 @@ class SQLAlchemyBaseRepository(Generic[T, M]):
         self.session = session
         self.model = model
 
-    async def get_by_id(self, id: int) -> Optional[T]:
+    async def get_by_id(self, id: Any) -> Optional[T]:
         stmt = select(self.model).where(self.model.id == id)
         result = await self.session.execute(stmt)
         item = result.scalar_one_or_none()
@@ -41,7 +41,7 @@ class SQLAlchemyBaseRepository(Generic[T, M]):
         await self.session.refresh(model_obj)
         return self._to_entity(model_obj)
 
-    async def delete(self, id: int) -> None:
+    async def delete(self, id: Any) -> None:
         stmt = delete(self.model).where(self.model.id == id)
         await self.session.execute(stmt)
         await self.session.commit()

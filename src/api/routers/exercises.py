@@ -2,9 +2,11 @@ import os
 import aiofiles
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
+from fastapi_pagination import Page, paginate
 from src.api.schemas.schemas import ExerciseCreate, ExerciseRead, ExerciseUpdate
 from src.application.services.exercise import ExerciseService
-from src.api.dependencies import get_exercise_service
+from src.api.dependencies import get_exercise_service, get_current_user
+from src.domain.entities import User
 
 router = APIRouter(prefix="/exercises", tags=["Exercises"])
 
@@ -12,9 +14,13 @@ router = APIRouter(prefix="/exercises", tags=["Exercises"])
 async def create_exercise(exercise: ExerciseCreate, service: ExerciseService = Depends(get_exercise_service)):
     return await service.create_exercise(**exercise.model_dump())
 
-@router.get("/", response_model=List[ExerciseRead])
-async def list_exercises(service: ExerciseService = Depends(get_exercise_service)):
-    return await service.get_all_exercises()
+@router.get("/", response_model=Page[ExerciseRead])
+async def list_exercises(
+    service: ExerciseService = Depends(get_exercise_service),
+    current_user: User = Depends(get_current_user)
+):
+    exercises = await service.get_all_for_user(current_user.id)
+    return paginate(exercises)
 
 @router.get("/{exercise_id}", response_model=ExerciseRead)
 async def get_exercise(exercise_id: int, service: ExerciseService = Depends(get_exercise_service)):
@@ -37,6 +43,15 @@ async def update_exercise(exercise_id: int, exercise_data: ExerciseUpdate, servi
 @router.delete("/{exercise_id}")
 async def delete_exercise(exercise_id: int, service: ExerciseService = Depends(get_exercise_service)):
     await service.delete_exercise(exercise_id)
+    return {"status": "success"}
+
+@router.post("/{exercise_id}/blacklist")
+async def blacklist_exercise(
+    exercise_id: int,
+    service: ExerciseService = Depends(get_exercise_service),
+    current_user: User = Depends(get_current_user)
+):
+    await service.blacklist_exercise(current_user.id, exercise_id)
     return {"status": "success"}
 
 @router.post("/{exercise_id}/media")

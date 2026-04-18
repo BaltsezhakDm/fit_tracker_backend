@@ -1,7 +1,10 @@
 import os
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from src.api.routers import users, exercises, programs, workouts, analytics
+from fastapi_pagination import add_pagination
+from src.api.routers import users, exercises, programs, workouts, analytics, auth
+from src.core.config import settings
 
 app = FastAPI(
     title="Fit-Tracker API",
@@ -9,11 +12,22 @@ app = FastAPI(
     version="1.0.0"
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(exercises.router)
 app.include_router(programs.router)
 app.include_router(workouts.router)
 app.include_router(analytics.router)
+
+add_pagination(app)
 
 os.makedirs("static/uploads", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")

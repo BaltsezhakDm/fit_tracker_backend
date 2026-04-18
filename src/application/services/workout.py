@@ -1,5 +1,5 @@
 from datetime import datetime, UTC
-from typing import List, Optional
+from typing import List, Optional, Any
 from src.domain.entities import WorkoutSession, WorkoutExercise, WorkoutSet, WorkoutStatus
 from src.domain.repositories import (
     WorkoutSessionRepository, WorkoutExerciseRepository, WorkoutSetRepository
@@ -43,30 +43,39 @@ class WorkoutService:
         session = WorkoutSession(id=None, user_id=user_id, plan_id=plan_id)
         return await self.session_repo.create(session)
 
-    async def add_exercise_to_workout(self, session_id: int, exercise_id: int) -> WorkoutExercise:
+    async def add_exercise_to_workout(self, session_id: Any, exercise_id: int, technique_details: dict = None) -> WorkoutExercise:
         """
         Add an exercise to an active session.
 
         Args:
-            session_id (int): ID of the active session.
+            session_id (Any): ID of the active session.
             exercise_id (int): ID of the exercise.
+            technique_details (dict): Technique variations or notes.
 
         Returns:
             WorkoutExercise: The added workout exercise entry.
         """
+        if technique_details is None:
+            technique_details = {}
         existing_exercises = await self.workout_exercise_repo.get_by_session_id(session_id)
         order = len(existing_exercises) + 1
-        workout_exercise = WorkoutExercise(id=None, session_id=session_id, exercise_id=exercise_id, order=order)
+        workout_exercise = WorkoutExercise(
+            id=None, session_id=session_id, exercise_id=exercise_id,
+            order=order, technique_details=technique_details
+        )
         return await self.workout_exercise_repo.create(workout_exercise)
 
-    async def add_set(self, workout_exercise_id: int, reps: int, weight: float,
+    async def add_set(self, workout_exercise_id: Any, reps: int, weight: float,
                       time_spent_seconds: Optional[int] = None,
-                      rest_time_seconds: Optional[int] = None) -> WorkoutSet:
+                      rest_time_seconds: Optional[int] = None,
+                      is_warmup: bool = False,
+                      rpe: Optional[int] = None,
+                      rir: Optional[int] = None) -> WorkoutSet:
         """
         Record a performed set for a workout exercise.
 
         Args:
-            workout_exercise_id (int): ID of the workout exercise.
+            workout_exercise_id (Any): ID of the workout exercise.
             reps (int): Repetitions performed.
             weight (float): Weight used.
             time_spent_seconds (Optional[int]): Duration of the set.
@@ -81,16 +90,19 @@ class WorkoutService:
             reps=reps,
             weight=weight,
             time_spent_seconds=time_spent_seconds,
-            rest_time_seconds=rest_time_seconds
+            rest_time_seconds=rest_time_seconds,
+            is_warmup=is_warmup,
+            rpe=rpe,
+            rir=rir
         )
         return await self.workout_set_repo.create(workout_set)
 
-    async def hot_swap_exercise(self, workout_exercise_id: int, new_exercise_id: int) -> WorkoutExercise:
+    async def hot_swap_exercise(self, workout_exercise_id: Any, new_exercise_id: int) -> WorkoutExercise:
         """
         Replace an exercise in the middle of a workout.
 
         Args:
-            workout_exercise_id (int): Current workout exercise ID.
+            workout_exercise_id (Any): Current workout exercise ID.
             new_exercise_id (int): ID of the replacement exercise.
 
         Returns:
@@ -103,12 +115,12 @@ class WorkoutService:
         workout_exercise.exercise_id = new_exercise_id
         return await self.workout_exercise_repo.update(workout_exercise)
 
-    async def complete_workout(self, session_id: int) -> WorkoutSession:
+    async def complete_workout(self, session_id: Any) -> WorkoutSession:
         """
         Finalize a workout session.
 
         Args:
-            session_id (int): ID of the session to complete.
+            session_id (Any): ID of the session to complete.
 
         Returns:
             WorkoutSession: The completed session.

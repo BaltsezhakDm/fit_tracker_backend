@@ -1,22 +1,30 @@
 from typing import List
 from fastapi import APIRouter, Depends
 from src.api.schemas.schemas import (
-    TrainingProgramCreate, TrainingProgramRead, TrainingProgramUpdate,
+    TrainingProgramBase, TrainingProgramRead, TrainingProgramUpdate,
     TrainingPlanCreate, TrainingPlanRead, TrainingPlanUpdate,
     PlanExerciseBase, PlanExerciseRead
 )
 from src.application.services.program import ProgramService
-from src.api.dependencies import get_program_service
+from src.api.dependencies import get_program_service, get_current_user
+from src.domain.entities import User
 
 router = APIRouter(prefix="/programs", tags=["Programs & Plans"])
 
 @router.post("/", response_model=TrainingProgramRead)
-async def create_program(program: TrainingProgramCreate, service: ProgramService = Depends(get_program_service)):
-    return await service.create_program(**program.model_dump())
+async def create_program(
+    program: TrainingProgramBase,
+    service: ProgramService = Depends(get_program_service),
+    current_user: User = Depends(get_current_user)
+):
+    return await service.create_program(user_id=current_user.id, **program.model_dump())
 
-@router.get("/user/{user_id}", response_model=List[TrainingProgramRead])
-async def list_user_programs(user_id: int, service: ProgramService = Depends(get_program_service)):
-    return await service.get_user_programs(user_id)
+@router.get("/", response_model=List[TrainingProgramRead])
+async def list_user_programs(
+    service: ProgramService = Depends(get_program_service),
+    current_user: User = Depends(get_current_user)
+):
+    return await service.get_user_programs(current_user.id)
 
 @router.post("/plans", response_model=TrainingPlanRead)
 async def add_plan(plan: TrainingPlanCreate, service: ProgramService = Depends(get_program_service)):

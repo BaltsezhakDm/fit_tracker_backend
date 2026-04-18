@@ -1,5 +1,6 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Any, Dict
+from uuid import UUID
 from pydantic import BaseModel, ConfigDict
 from src.domain.entities import WorkoutStatus
 
@@ -21,6 +22,7 @@ class ExerciseBase(BaseModel):
     description: Optional[str] = None
     media_url: Optional[str] = None
     comment: Optional[str] = None
+    biomechanics_tags: List[str] = []
 
 class ExerciseCreate(ExerciseBase):
     pass
@@ -32,6 +34,7 @@ class ExerciseUpdate(BaseModel):
     description: Optional[str] = None
     media_url: Optional[str] = None
     comment: Optional[str] = None
+    biomechanics_tags: Optional[List[str]] = None
 
 class ExerciseRead(ExerciseBase):
     id: int
@@ -79,7 +82,7 @@ class PlanExerciseRead(PlanExerciseBase):
     model_config = ConfigDict(from_attributes=True)
 
 class WorkoutSessionRead(BaseModel):
-    id: int
+    id: UUID
     user_id: int
     plan_id: Optional[int]
     start_time: datetime
@@ -92,17 +95,21 @@ class WorkoutSetCreate(BaseModel):
     weight: float
     time_spent_seconds: Optional[int] = None
     rest_time_seconds: Optional[int] = None
+    is_warmup: bool = False
+    rpe: Optional[int] = None
+    rir: Optional[int] = None
 
 class WorkoutSetRead(WorkoutSetCreate):
-    id: int
-    workout_exercise_id: int
+    id: UUID
+    workout_exercise_id: UUID
     model_config = ConfigDict(from_attributes=True)
 
 class WorkoutExerciseRead(BaseModel):
-    id: int
-    session_id: int
+    id: UUID
+    session_id: UUID
     exercise_id: int
     order: int
+    technique_details: Dict[str, Any] = {}
     model_config = ConfigDict(from_attributes=True)
 
 class ProgressionRead(BaseModel):

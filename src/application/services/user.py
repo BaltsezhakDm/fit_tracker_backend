@@ -40,3 +40,9 @@ class UserService:
             Optional[User]: User entity if found, None otherwise.
         """
         return await self.user_repo.get_by_telegram_id(telegram_id)
+
+    async def get_user(self, user_id: int) -> Optional[User]:
+        """
+        Get a user by their internal ID.
+        """
+        return await self.user_repo.get_by_id(user_id)
