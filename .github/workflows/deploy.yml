@@ -87,20 +87,34 @@ jobs:
 
       - name: Execute remote deploy
         uses: appleboy/ssh-action@v1.0.3
+        # Добавляем переменные из секретов репозитория в окружение этого шага
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_KEY }}
+          # Указываем скрипту, какие переменные пробросить внутрь
+          envs: TELEGRAM_BOT_TOKEN,JWT_SECRET
           script: |
             mkdir -p ~/fit_tracker
             cd ~/fit_tracker
-            # Создаем .env с актуальным тегом образа
+            
+            # Создаем .env и записываем в него тег образа
             echo "DOCKER_IMAGE=${{ env.REGISTRY }}/${{ needs.prepare.outputs.image_name }}:sha-${{ github.sha }}" > .env
-            # Логинимся в GHCR на сервере (используем GITHUB_TOKEN текущего запуска)
+            
+            # Дописываем наши секретные переменные в .env файл
+            echo "TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN" >> .env
+            echo "JWT_SECRET=$JWT_SECRET" >> .env
+            
+            # Логинимся в GHCR на сервере
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+            
             # Пул и перезапуск
             docker compose pull
             docker compose up -d
+            
             # Очистка старых образов и выход из реестра
             docker image prune -f
             docker logout ${{ env.REGISTRY }}
