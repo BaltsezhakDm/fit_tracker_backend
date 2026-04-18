@@ -1,10 +1,12 @@
 import hashlib
 import hmac
+import json
 import time
+import urllib.parse
 from datetime import datetime, timedelta, UTC
-from typing import Optional
+from typing import Any, Dict, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
-from jose import JWTError, jwt
+from jose import jwt
 from pydantic import BaseModel
 from src.core.config import settings
 from src.application.services.user import UserService
@@ -20,36 +22,100 @@ class TokenResponse(BaseModel):
     refresh_token: str
     token_type: str
 
-def verify_telegram_data(init_data: str) -> dict:
+def verify_telegram_data(init_data: str) -> Dict[str, Any]:
     """
     Verifies the authenticity of data received from the Telegram Mini App.
+
+    Args:
+        init_data: The raw initData string from Telegram.
+
+    Returns:
+        The user data dictionary if verification is successful.
+
+    Raises:
+        HTTPException: If verification fails or data is invalid.
     """
     try:
-        vals = {k: v for k, v in [item.split("=") for item in init_data.split("&")]}
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid initData format")
+        # Use parse_qsl to correctly handle URL-encoded data
+        params = dict(urllib.parse.parse_qsl(init_data, strict_parsing=True))
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid initData format"
+        )
 
-    if "hash" not in vals:
-        raise HTTPException(status_code=400, detail="Missing hash in initData")
+    if "hash" not in params:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing hash in initData"
+        )
 
-    data_check_string = "\n".join([f"{k}={v}" for k, v in sorted(vals.items()) if k != "hash"])
-    secret_key = hmac.new(b"WebAppData", settings.TELEGRAM_BOT_TOKEN.encode(), hashlib.sha256).digest()
-    calculated_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+    telegram_hash = params.pop("hash")
+    # The data_check_string is built from sorted key-value pairs, excluding the hash
+    data_check_string = "\n".join(
+        f"{k}={v}" for k, v in sorted(params.items())
+    )
 
-    if calculated_hash != vals["hash"]:
-        raise HTTPException(status_code=401, detail="Invalid Telegram signature")
+    secret_key = hmac.new(
+        b"WebAppData",
+        settings.TELEGRAM_BOT_TOKEN.encode(),
+        hashlib.sha256
+    ).digest()
+    calculated_hash = hmac.new(
+        secret_key,
+        data_check_string.encode(),
+        hashlib.sha256
+    ).hexdigest()
 
-    # Optional: check auth_date for freshness
-    if "auth_date" in vals:
-        auth_date = int(vals["auth_date"])
-        if time.time() - auth_date > 86400: # 24 hours
-             raise HTTPException(status_code=401, detail="Auth data expired")
+    if calculated_hash != telegram_hash:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Telegram signature"
+        )
 
-    import json
-    user_data = json.loads(vals.get("user", "{}"))
+    # Check auth_date for freshness (24 hours)
+    if "auth_date" in params:
+        try:
+            auth_date = int(params["auth_date"])
+            if time.time() - auth_date > 86400:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Auth data expired"
+                )
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid auth_date"
+            )
+
+    user_json = params.get("user")
+    if not user_json:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing user data"
+        )
+
+    try:
+        user_data = json.loads(user_json)
+    except json.JSONDecodeError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid user JSON"
+        )
+
     return user_data
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
+    """
+    Creates a JWT access token.
+
+    Args:
+        data: The payload to encode.
+        expires_delta: Optional expiration time delta.
+
+    Returns:
+        The encoded JWT token.
+    """
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.now(UTC) + expires_delta
@@ -63,7 +129,17 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 async def auth_telegram(
     auth_data: TelegramAuthRequest,
     user_service: UserService = Depends(get_user_service)
-):
+) -> Dict[str, str]:
+    """
+    Authenticates a user via Telegram Mini App initData.
+
+    Args:
+        auth_data: The Telegram authentication request containing initData.
+        user_service: The user service instance.
+
+    Returns:
+        A dictionary containing access and refresh tokens.
+    """
     # In a real scenario with a real bot token, we'd verify it.
     # For now, we'll allow a "mock" mode if the token is "your_bot_token"
     if settings.TELEGRAM_BOT_TOKEN == "your_bot_token":

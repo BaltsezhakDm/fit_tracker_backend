@@ -17,26 +17,41 @@ from src.application.services.workout import WorkoutService
 from src.application.services.analytics import AnalyticsService
 
 def get_user_service(db: AsyncSession = Depends(get_db)) -> UserService:
+    """
+    Dependency to provide a UserService instance.
+    """
     repo = SQLAlchemyUserRepository(db)
     return UserService(repo)
 
 def get_exercise_service(db: AsyncSession = Depends(get_db)) -> ExerciseService:
+    """
+    Dependency to provide an ExerciseService instance.
+    """
     repo = SQLAlchemyExerciseRepository(db)
     return ExerciseService(repo)
 
 def get_program_service(db: AsyncSession = Depends(get_db)) -> ProgramService:
+    """
+    Dependency to provide a ProgramService instance.
+    """
     program_repo = SQLAlchemyTrainingProgramRepository(db)
     plan_repo = SQLAlchemyTrainingPlanRepository(db)
     plan_exercise_repo = SQLAlchemyPlanExerciseRepository(db)
     return ProgramService(program_repo, plan_repo, plan_exercise_repo)
 
 def get_workout_service(db: AsyncSession = Depends(get_db)) -> WorkoutService:
+    """
+    Dependency to provide a WorkoutService instance.
+    """
     session_repo = SQLAlchemyWorkoutSessionRepository(db)
     exercise_repo = SQLAlchemyWorkoutExerciseRepository(db)
     set_repo = SQLAlchemyWorkoutSetRepository(db)
     return WorkoutService(session_repo, exercise_repo, set_repo)
 
 def get_analytics_service(db: AsyncSession = Depends(get_db)) -> AnalyticsService:
+    """
+    Dependency to provide an AnalyticsService instance.
+    """
     repo = SQLAlchemyAnalyticsRepository(db)
     return AnalyticsService(repo)
 
@@ -46,6 +61,19 @@ async def get_current_user(
     token: str = Depends(oauth2_scheme),
     user_service: UserService = Depends(get_user_service)
 ) -> User:
+    """
+    Dependency to get the current authenticated user from the JWT token.
+
+    Args:
+        token: The JWT access token from the Authorization header.
+        user_service: The user service instance.
+
+    Returns:
+        The authenticated User entity.
+
+    Raises:
+        HTTPException: If the token is invalid or the user is not found.
+    """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
