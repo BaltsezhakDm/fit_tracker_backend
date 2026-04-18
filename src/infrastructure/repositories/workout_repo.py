@@ -45,10 +45,16 @@ class SQLAlchemyWorkoutExerciseRepository(SQLAlchemyBaseRepository[WorkoutExerci
         return [self._to_entity(m) for m in result.scalars().all()]
 
     def _to_entity(self, m: WorkoutExerciseModel) -> WorkoutExercise:
-        return WorkoutExercise(id=m.id, session_id=m.session_id, exercise_id=m.exercise_id, order=m.order)
+        return WorkoutExercise(
+            id=m.id, session_id=m.session_id, exercise_id=m.exercise_id,
+            order=m.order, technique_details=m.technique_details
+        )
 
     def _to_model(self, e: WorkoutExercise) -> WorkoutExerciseModel:
-        return WorkoutExerciseModel(id=e.id, session_id=e.session_id, exercise_id=e.exercise_id, order=e.order)
+        return WorkoutExerciseModel(
+            id=e.id, session_id=e.session_id, exercise_id=e.exercise_id,
+            order=e.order, technique_details=e.technique_details
+        )
 
 class SQLAlchemyWorkoutSetRepository(SQLAlchemyBaseRepository[WorkoutSet, WorkoutSetModel], WorkoutSetRepository):
     def __init__(self, session):
@@ -63,12 +69,14 @@ class SQLAlchemyWorkoutSetRepository(SQLAlchemyBaseRepository[WorkoutSet, Workou
         return WorkoutSet(
             id=m.id, workout_exercise_id=m.workout_exercise_id,
             reps=m.reps, weight=m.weight,
-            time_spent_seconds=m.time_spent_seconds, rest_time_seconds=m.rest_time_seconds
+            time_spent_seconds=m.time_spent_seconds, rest_time_seconds=m.rest_time_seconds,
+            is_warmup=m.is_warmup, rpe=m.rpe, rir=m.rir
         )
 
     def _to_model(self, e: WorkoutSet) -> WorkoutSetModel:
         return WorkoutSetModel(
             id=e.id, workout_exercise_id=e.workout_exercise_id,
             reps=e.reps, weight=e.weight,
-            time_spent_seconds=e.time_spent_seconds, rest_time_seconds=e.rest_time_seconds
+            time_spent_seconds=e.time_spent_seconds, rest_time_seconds=e.rest_time_seconds,
+            is_warmup=e.is_warmup, rpe=e.rpe, rir=e.rir
         )

@@ -10,3 +10,7 @@ pytest
 pytest-asyncio
 httpx
 aiofiles
+fastapi-pagination
+python-jose[cryptography]
+passlib[bcrypt]
+uuid6

@@ -19,7 +19,8 @@ class ExerciseService:
                                secondary_muscle_groups: List[str],
                                description: Optional[str] = None,
                                media_url: Optional[str] = None,
-                               comment: Optional[str] = None) -> Exercise:
+                               comment: Optional[str] = None,
+                               biomechanics_tags: List[str] = []) -> Exercise:
         """
         Create a new exercise in the knowledge base.
 
@@ -41,7 +42,8 @@ class ExerciseService:
             secondary_muscle_groups=secondary_muscle_groups,
             description=description,
             media_url=media_url,
-            comment=comment
+            comment=comment,
+            biomechanics_tags=biomechanics_tags
         )
         return await self.exercise_repo.create(exercise)
 
@@ -65,6 +67,18 @@ class ExerciseService:
             List[Exercise]: List of all exercises.
         """
         return await self.exercise_repo.get_all()
+
+    async def get_all_for_user(self, user_id: int) -> List[Exercise]:
+        """
+        Retrieve all exercises for a user, excluding blacklisted ones.
+        """
+        return await self.exercise_repo.get_all_for_user(user_id)
+
+    async def blacklist_exercise(self, user_id: int, exercise_id: int) -> None:
+        """
+        Blacklist an exercise for a user.
+        """
+        await self.exercise_repo.blacklist_exercise(user_id, exercise_id)
 
     async def update_exercise(self, exercise: Exercise) -> Exercise:
         """

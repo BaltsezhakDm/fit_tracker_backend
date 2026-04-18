@@ -1,5 +1,9 @@
-from fastapi import Depends
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
 from sqlalchemy.ext.asyncio import AsyncSession
+from src.core.config import settings
+from src.domain.entities import User
 from src.infrastructure.db.session import get_db
 from src.infrastructure.repositories.user_repo import SQLAlchemyUserRepository
 from src.infrastructure.repositories.exercise_repo import SQLAlchemyExerciseRepository
@@ -35,3 +39,27 @@ def get_workout_service(db: AsyncSession = Depends(get_db)) -> WorkoutService:
 def get_analytics_service(db: AsyncSession = Depends(get_db)) -> AnalyticsService:
     repo = SQLAlchemyAnalyticsRepository(db)
     return AnalyticsService(repo)
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/telegram")
+
+async def get_current_user(
+    token: str = Depends(oauth2_scheme),
+    user_service: UserService = Depends(get_user_service)
+) -> User:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.ALGORITHM])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+
+    user = await user_service.get_user(int(user_id))
+    if user is None:
+        raise credentials_exception
+    return user

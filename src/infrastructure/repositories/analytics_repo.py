@@ -20,6 +20,7 @@ class SQLAlchemyAnalyticsRepository(AnalyticsRepository):
             .join(WorkoutSetModel, WorkoutExerciseModel.id == WorkoutSetModel.workout_exercise_id)
             .where(WorkoutSessionModel.user_id == user_id)
             .where(WorkoutExerciseModel.exercise_id == exercise_id)
+            .where(WorkoutSetModel.is_warmup == False)
             .group_by(WorkoutSessionModel.id)
             .order_by(WorkoutSessionModel.start_time)
         )

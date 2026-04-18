@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional, Generic, TypeVar
+from typing import List, Optional, Generic, TypeVar, Any
 from src.domain.entities import (
     User, Exercise, TrainingProgram, TrainingPlan,
     WorkoutSession, WorkoutExercise, WorkoutSet, PlanExercise
@@ -12,7 +12,7 @@ class BaseRepository(ABC, Generic[T]):
     Abstract base repository with common CRUD operations.
     """
     @abstractmethod
-    async def get_by_id(self, id: int) -> Optional[T]:
+    async def get_by_id(self, id: Any) -> Optional[T]:
         """Get entity by its ID."""
         pass
 
@@ -32,7 +32,7 @@ class BaseRepository(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    async def delete(self, id: int) -> None:
+    async def delete(self, id: Any) -> None:
         """Delete an entity by its ID."""
         pass
 
@@ -45,7 +45,15 @@ class UserRepository(BaseRepository[User], ABC):
 
 class ExerciseRepository(BaseRepository[Exercise], ABC):
     """Repository interface for Exercise entities."""
-    pass
+    @abstractmethod
+    async def get_all_for_user(self, user_id: int) -> List[Exercise]:
+        """Get all exercises excluding blacklisted for user."""
+        pass
+
+    @abstractmethod
+    async def blacklist_exercise(self, user_id: int, exercise_id: int) -> None:
+        """Add exercise to user's blacklist."""
+        pass
 
 class TrainingProgramRepository(BaseRepository[TrainingProgram], ABC):
     """Repository interface for TrainingProgram entities."""
