@@ -17,9 +17,8 @@ async def create_exercise(exercise: ExerciseCreate, service: ExerciseService = D
 @router.get("/", response_model=Page[ExerciseRead])
 async def list_exercises(
     service: ExerciseService = Depends(get_exercise_service),
-    current_user: User = Depends(get_current_user)
 ):
-    exercises = await service.get_all_for_user(current_user.id)
+    exercises = await service.get_all_exercises()
     return paginate(exercises)
 
 @router.get("/{exercise_id}", response_model=ExerciseRead)
