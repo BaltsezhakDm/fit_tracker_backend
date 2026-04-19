@@ -26,6 +26,10 @@ async def list_user_programs(
 ):
     return await service.get_user_programs(current_user.id)
 
+@router.get("/{program_id}/plans", response_model=List[TrainingPlanRead])
+async def list_program_plans(program_id: int, service: ProgramService = Depends(get_program_service)):
+    return await service.get_program_plans(program_id)
+
 @router.post("/plans", response_model=TrainingPlanRead)
 async def add_plan(plan: TrainingPlanCreate, service: ProgramService = Depends(get_program_service)):
     return await service.add_plan_to_program(**plan.model_dump())
@@ -63,4 +67,9 @@ async def update_plan(plan_id: int, plan_data: TrainingPlanUpdate, service: Prog
 @router.delete("/plans/{plan_id}")
 async def delete_plan(plan_id: int, service: ProgramService = Depends(get_program_service)):
     await service.delete_plan(plan_id)
+    return {"status": "success"}
+
+@router.delete("/plans/{plan_id}/exercises/{exercise_id}")
+async def remove_exercise_from_plan(plan_id: int, exercise_id: int, service: ProgramService = Depends(get_program_service)):
+    await service.remove_exercise_from_plan(plan_id, exercise_id)
     return {"status": "success"}

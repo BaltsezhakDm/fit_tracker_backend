@@ -107,6 +107,11 @@ class PlanExerciseRepository(ABC):
         """Get all exercises for a plan."""
         pass
 
+    @abstractmethod
+    async def remove_exercise_from_plan(self, plan_id: int, exercise_id: int) -> None:
+        """Remove an exercise from a plan."""
+        pass
+
 from src.domain.value_objects import ExerciseProgression
 
 class AnalyticsRepository(ABC):

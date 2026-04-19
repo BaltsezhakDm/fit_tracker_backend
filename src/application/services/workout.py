@@ -144,3 +144,36 @@ class WorkoutService:
             List[WorkoutSession]: List of sessions.
         """
         return await self.session_repo.get_history_by_user_id(user_id)
+
+    async def delete_workout_session(self, session_id: Any) -> None:
+        """
+        Delete a workout session from history.
+
+        Args:
+            session_id (Any): ID of the session to delete.
+        """
+        await self.session_repo.delete(session_id)
+
+    async def get_session_exercises(self, session_id: Any) -> List[WorkoutExercise]:
+        """
+        Get all exercises performed in a specific session.
+
+        Args:
+            session_id (Any): Session ID.
+
+        Returns:
+            List[WorkoutExercise]: List of workout exercises.
+        """
+        return await self.workout_exercise_repo.get_by_session_id(session_id)
+
+    async def get_workout_exercise_sets(self, workout_exercise_id: Any) -> List[WorkoutSet]:
+        """
+        Get all sets for a specific workout exercise.
+
+        Args:
+            workout_exercise_id (Any): Workout Exercise ID.
+
+        Returns:
+            List[WorkoutSet]: List of sets.
+        """
+        return await self.workout_set_repo.get_by_workout_exercise_id(workout_exercise_id)

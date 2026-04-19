@@ -160,3 +160,13 @@ class ProgramService:
             plan_id (int): ID of the plan.
         """
         await self.plan_repo.delete(plan_id)
+
+    async def remove_exercise_from_plan(self, plan_id: int, exercise_id: int) -> None:
+        """
+        Remove a specific exercise from a plan.
+
+        Args:
+            plan_id (int): ID of the plan.
+            exercise_id (int): ID of the exercise.
+        """
+        await self.plan_exercise_repo.remove_exercise_from_plan(plan_id, exercise_id)
