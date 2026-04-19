@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from typing import List, Optional, Any, Dict
 from uuid import UUID
 from pydantic import BaseModel, ConfigDict
@@ -116,3 +116,18 @@ class ProgressionRead(BaseModel):
     date: datetime
     max_weight: float
     total_volume: float
+
+class AnalyticsSummaryRead(BaseModel):
+    total_volume: float
+    workouts_count: int
+    last_week_volume_change_percent: float
+    records_count: int
+
+class WorkloadDataRead(BaseModel):
+    date: date
+    volume: float
+
+class PersonalRecordRead(BaseModel):
+    exercise_name: str
+    weight: float
+    date: date

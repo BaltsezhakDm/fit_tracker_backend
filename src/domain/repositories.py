@@ -112,11 +112,26 @@ class PlanExerciseRepository(ABC):
         """Remove an exercise from a plan."""
         pass
 
-from src.domain.value_objects import ExerciseProgression
+from src.domain.value_objects import ExerciseProgression, AnalyticsSummary, WorkloadData, PersonalRecord
 
 class AnalyticsRepository(ABC):
     """Repository interface for analytical data."""
     @abstractmethod
     async def get_exercise_progression(self, user_id: int, exercise_id: int) -> List[ExerciseProgression]:
         """Get weight progression for an exercise."""
+        pass
+
+    @abstractmethod
+    async def get_summary(self, user_id: int) -> AnalyticsSummary:
+        """Get summary statistics for a user."""
+        pass
+
+    @abstractmethod
+    async def get_workload(self, user_id: int, period: str) -> List[WorkloadData]:
+        """Get daily workload data for a period (week, month)."""
+        pass
+
+    @abstractmethod
+    async def get_records(self, user_id: int) -> List[PersonalRecord]:
+        """Get personal records for each exercise."""
         pass
