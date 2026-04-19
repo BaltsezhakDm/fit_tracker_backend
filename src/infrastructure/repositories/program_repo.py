@@ -55,3 +55,12 @@ class SQLAlchemyPlanExerciseRepository(PlanExerciseRepository):
         stmt = select(PlanExerciseModel).where(PlanExerciseModel.plan_id == plan_id)
         result = await self.session.execute(stmt)
         return [PlanExercise(plan_id=m.plan_id, exercise_id=m.exercise_id, target_sets=m.target_sets, target_reps=m.target_reps) for m in result.scalars().all()]
+
+    async def remove_exercise_from_plan(self, plan_id: int, exercise_id: int) -> None:
+        from sqlalchemy import delete
+        stmt = delete(PlanExerciseModel).where(
+            PlanExerciseModel.plan_id == plan_id,
+            PlanExerciseModel.exercise_id == exercise_id
+        )
+        await self.session.execute(stmt)
+        await self.session.commit()

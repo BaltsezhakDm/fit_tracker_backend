@@ -46,3 +46,16 @@ async def get_history(
 ):
     history = await service.get_workout_history(current_user.id)
     return paginate(history)
+
+@router.delete("/{session_id}")
+async def delete_workout_session(session_id: UUID, service: WorkoutService = Depends(get_workout_service)):
+    await service.delete_workout_session(session_id)
+    return {"status": "success"}
+
+@router.get("/{session_id}/exercises", response_model=List[WorkoutExerciseRead])
+async def get_session_exercises(session_id: UUID, service: WorkoutService = Depends(get_workout_service)):
+    return await service.get_session_exercises(session_id)
+
+@router.get("/exercises/{workout_exercise_id}/sets", response_model=List[WorkoutSetRead])
+async def get_workout_exercise_sets(workout_exercise_id: UUID, service: WorkoutService = Depends(get_workout_service)):
+    return await service.get_workout_exercise_sets(workout_exercise_id)
